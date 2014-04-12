@@ -1,0 +1,47 @@
+<launch>
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <!-- Load robot model -->
+  <param name="robot_description" type="str"
+         textfile="$(find myrobot_gazebo)/myrobot.urdf"/>
+
+  <!-- Spawn a robot into Gazebo -->
+  <node name="spawn_urdf" pkg="gazebo_ros"
+        type="spawn_model"
+        args="-param robot_description -urdf -model myrobot" />
+
+
+  <!-- Set controller parameters -->
+  <rosparam>
+    myrobot:
+      # Publish all joint states -----------------------------------
+      joint_state_controller:
+        type: joint_state_controller/JointStateController
+        publish_rate: 50  
+      
+      # Position Controllers ---------------------------------------
+      tip_joint_position_controller:
+        type: effort_controllers/JointPositionController
+        joint: tip_joint
+        pid: {p: 100.0, i: 0.01, d: 10.0}
+  </rosparam>
+
+  <!-- Load the controllers -->
+  <node name="controller_spawner" pkg="controller_manager"
+        type="spawner" respawn="false"
+        output="screen" ns="/myrobot"
+        args="tip_joint_position_controller joint_state_controller"/>
+
+  <!-- image viewer -->
+  <node name="tip_camera_view" pkg="image_view2"
+        type="image_view2" respawn="false"
+        output="screen" args="image:=/myrobot/tip_camera/image_raw"/>
+        
+</launch>
+
