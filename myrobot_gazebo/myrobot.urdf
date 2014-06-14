@@ -1,29 +1,66 @@
 <?xml version="1.0"?>
+<!-- このタグがロボットモデルを表す。nameはロボットのGazebo内の名前 -->
 <robot name="myrobot">
-  <!-- world joint -->
+  <!-- 世界座標系を表す疑似リンク。Gazebo用のおまじない -->
   <link name="world"/>
 
-  <!-- relation between simulation world and our model -->
+  <!-- 世界座標系とロボットモデルの関係を表すジョイント。ここでは固定なので、"fixed"タイプを指定している。
+      ジョイントのタイプ：
+        fixed: 
+          固定。動かない。
+        revolute:
+          回転ジョイント。角度リミット付き。
+        continuous:
+          回転ジョイント。無限か移転する車輪など用。
+        prismatic:
+          直動ジョイント。
+        floating:
+          6Dに無制限に動く。
+        planar:
+          ２次元平面上を動く（３自由度）
+   -->
   <joint name="world_joint" type="fixed">
+      <!-- 親リンク -->
       <parent link="world"/>
+      <!-- 子リンク -->
       <child link="base_link"/> 
   </joint>
 
-  <!-- base link -->
+  <!-- アームの下の方のリンク -->
   <link name="base_link">
+    <!-- 質量パラメータ-->
     <inertial>
-      <mass value="1.0"/>
+      <!-- 質量中心 -->
       <origin xyz="0 0 0.5" rpy="0 0 0"/>
+      <!-- 質量 -->
+      <mass value="1.0"/>
+      <!-- 慣性テンソル -->
       <inertia ixx="1.0" ixy="0.0" ixz="0.0"
                          iyy="1.0" iyz="0.0"
                                    izz="1.0"/>
     </inertial>
+
+    <!-- 見た目の設定 RVizやGazebo GUIで見える部分 -->
     <visual>
+      <!-- geometry のリンク基準座標系からの変異分 -->
       <origin xyz="0 0 0.5" rpy="0 0 0"/>
+      <!-- 形の情報を記述する部分。
+        プリミティブ:
+          box:
+            箱
+          sphere:
+            玉
+          cylinder:
+            円筒
+        メッシュ:
+          STLやColladaが使える
+      -->
       <geometry>
         <box size="0.1 0.1 1.0"/>
       </geometry>
     </visual>
+    
+    <!-- 干渉チェック用の形状データ。普通はVisualより軽いものを使う -->
     <collision>
       <origin xyz="0 0 0.5" rpy="0 0 0"/>
       <geometry>
@@ -31,29 +68,43 @@
       </geometry>
     </collision>
   </link>
+  <!-- このgazeboタグで囲まれた部分はGazebo用の追加設定。
+       プラグイン読み込みの指定や、レンダリング用の材質設定をする。
+       URDFとしては意味のない部分。 -->
   <gazebo reference="base_link">
+    <!-- 色の設定 -->
     <material>Gazebo/Red</material>
   </gazebo>
 
-  <!-- joint which connects base and tip -->
+  <!-- 下の腕と上の腕を接続するジョイント -->
   <joint name="tip_joint" type="continuous">
     <parent link="base_link"/>
-    <child link="tip_link"/>	
+    <child link="tip_link"/>
+    <!-- 回転中心になる軸の指定 -->
     <axis xyz="0 1 0"/>
+    <!-- 軸のオフセット（親リンクの座標系基準） -->
     <origin xyz="0 0.1 1.0" rpy="0 0 0"/>
+    <!-- 動力学計算時の粘性抵抗係数。URDFで何に使っているかはよく知らない。 -->
     <dynamics damping="0.7"/>
   </joint>
-  <!-- transmission -->
+
+  <!-- アクチュエータから、関節軸までの伝達系を表現する。 -->
   <transmission name="tip_trans">
+    <!-- 伝達系のタイプ。SimpleTransmissionは単純に減速比をかけるようなもの -->
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="tip_joint"/> 
+    <!-- アクチュエータのインターフェース情報。ros-controlsの対応するインターフェースを書く。
+      EffortJointInterfaceはEffort(トルク？位置を二回微分した何か)を出力としてサーボするアクチュエータをモデル化したもの。
+      VelocityJointInterfaceなどもある。
+      controller_managerはこれを使って位置や速度をサーボする。
+    -->
     <actuator name="tip_motor">
        <hardwareInterface>EffortJointInterface</hardwareInterface>
        <mechanismReduction>1</mechanismReduction>
     </actuator>
   </transmission>
 
-  <!-- arm tip link -->
+  <!-- 腕先のリンク。根元と特にかわらない。 -->
   <link name="tip_link">
     <inertial>
       <mass value="1.0"/>
@@ -76,15 +127,20 @@
     </collision>
   </link>
   <gazebo reference="tip_link">
+    <!-- 色だけかえてみる -->
     <material>Gazebo/Orange</material>
   </gazebo>
 
+  <!-- カメラプラグインをくっつける座標系を確保するためのジョイント -->
   <joint name="camera_joint" type="fixed">
     <parent link="tip_link"/>
     <child link="camera_link"/>
     <origin xyz="0 0 0.5" rpy="0 -1.57 0"/>
   </joint>
 
+  <!-- カメラプラグイン用のリンク。ほぼダミー状態。質量なども軽くしてある。
+       X軸方向がカメラの向きになるので、親リンクから回転した状態で取り付けてある。
+   -->
   <link name="camera_link">
     <inertial>
       <mass value="1e-6"/>
@@ -110,14 +166,18 @@
     <material>Gazebo/FlatBlack</material>
   </gazebo>
 
-  <!-- ros control plugin -->
+  <!-- ros-controls の ControllerManagerおよびシミュレーションモデル用のRobotHW（デバイスIOをするモジュー流）をロードする。
+       説明すると長くなるが、関節を位置制御したり、関節状態をPublishしたりするためのモジュール（Controller)を使うためのおまじない。
+  -->
   <gazebo>
     <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
       <robotNamespace>/myrobot</robotNamespace>
     </plugin>
   </gazebo>
 
-  <!-- camera plugin -->
+  <!-- カメラのプラグインを読み込む設定。上で記述したcamera_linkにくっつくように記述している。
+       他は画像フォーマットやカメラパラメータなどを指定している。
+   -->
   <gazebo reference="camera_link">
     <sensor type="camera" name="tip_camera">
       <update_rate>30.0</update_rate>
