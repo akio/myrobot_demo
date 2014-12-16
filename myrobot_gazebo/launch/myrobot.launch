@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <launch>
-  <!-— 床面だけのシミュレーション世界でGazeboを起動 -->
+  <!-- 床面だけのシミュレーション世界でGazeboを起動 -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
@@ -9,13 +10,13 @@
   </include>
 
   <!-- ロボットモデル(myrobot.urdf)をパラメータとして読み出す -->
-  <param name="robot_description" type=“str" textfile="$(find myrobot_gazebo)/myrobot.urdf"/>
+  <param name="robot_description" type="str" textfile="$(find myrobot_gazebo)/urdf/myrobot.urdf"/>
 
   <!-- 上でパラメータに保存したロボットモデルをSDFに変換して、Gazeboサーバーにロードする。
        Gazeboサーバーはプラグイン情報などを読み適切なライブラリを探し出して同時にロードする。
        今回の場合は、この時点でros_controlプラグインやカメラプラグインがロードされる。
    -->
-  <node name="spawn_urdf" pkg=“gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model myrobot" />
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model myrobot" />
 
   <!-- controller_managerにロードさせたいControllerプラグインの設定。
        ros_controllersに入っている。

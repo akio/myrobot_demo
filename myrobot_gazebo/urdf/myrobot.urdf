@@ -92,12 +92,14 @@
   <transmission name="tip_trans">
     <!-- 伝達系のタイプ。SimpleTransmissionは単純に減速比をかけるようなもの -->
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="tip_joint"/> 
-    <!-- アクチュエータのインターフェース情報。ros-controlsの対応するインターフェースを書く。
-      EffortJointInterfaceはEffort(トルク？位置を二回微分した何か)を出力としてサーボするアクチュエータをモデル化したもの。
-      VelocityJointInterfaceなどもある。
-      controller_managerはこれを使って位置や速度をサーボする。
-    -->
+    <joint name="tip_joint"> 
+      <!-- アクチュエータのインターフェース情報。ros-controlsの対応するインターフェースを書く。
+        EffortJointInterfaceはEffort(トルク？位置を二回微分した何か)を出力としてサーボするアクチュエータをモデル化したもの。
+        VelocityJointInterfaceなどもある。
+        controller_managerはこれを使って位置や速度をサーボする。
+      -->
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+    </joint>
     <actuator name="tip_motor">
        <hardwareInterface>EffortJointInterface</hardwareInterface>
        <mechanismReduction>1</mechanismReduction>
